@@ -1,4 +1,5 @@
 # Ruby-based configuration file for wmii.
+require 'rubygems'
 
 ################################################################################
 # GENERAL CONFIGURATION
@@ -32,7 +33,7 @@ end
 
 module Color
   { # Color tuples are "<text> <background> <border>"
-    :NORMCOLORS   => NORMAL     = '#888888 #222222 #333333',
+    :NORMCOLORS   => NORMAL     = '#ffffff #222222 #333333',
     :FOCUSCOLORS  => FOCUSED    = '#ffffff #285577 #4C7899',
     :BACKGROUND   => BACKGROUND = '#333333',
     #:NORMCOLORS   => NORMAL     = '#dcdccc #262626 #4c4c4c',
@@ -61,12 +62,14 @@ EOF
 
 # Column Rules
 fs.colrules.write <<EOF
-/./ -> 50+50
+/./ -> 55+45
 EOF
 
 # Tagging Rules
 fs.tagrules.write <<EOF
-/Firefox - Restore Previous Session/ -> web
+/Firefox.*/ -> web
+/Vimperator.*/ -> web
+/Gran Paradiso.*/ -> web
 /Gimp.*/ -> gimp
 /MPlayer.*/ -> ~
 /.*/ -> !
@@ -201,31 +204,47 @@ EOF
 
   action :status do
     if defined? @statusBars
-      @statusBars.each {|s| s.kill }
+      @statusBars.each { |s| s.kill }
     end
 
     @statusBars = [
-      StatusBar.new(fs.rbar.temp, 20) do
-        temperature = 0
-        IO.popen('sensors', IO::RDONLY) do |sen|
-          temps = sen.read.scan(/:\s+\+(\d+)/).flatten
-          temps.each { |temp| temperature += temp.to_i }
-          temperature = temperature / temps.size
-        end
+      StatusBar.new(fs.rbar.temp, 30, Color::NORMAL) do
+        temperature = `sensors`.scan(/:\s+\+(\d+)/).flatten.first
         "#{temperature}C"
       end,
 
-      StatusBar.new(fs.rbar.cpu_load, 20) do
+      StatusBar.new(fs.rbar.load, 20, Color::NORMAL) do
         File.read('/proc/loadavg').split[0..2].join(' ')
       end,
 
-      StatusBar.new(fs.rbar.bat, 20) do
+      StatusBar.new(fs.rbar.bat, 30, Color::NORMAL) do
         lvl = `hal-get-property --udi /org/freedesktop/Hal/devices/computer_power_supply_battery_BAT1 --key battery.charge_level.percentage`.strip
         "#{lvl}%"
       end,
 
-      StatusBar.new(fs.rbar.clock, 1) do
-        Time.now.strftime('%B %d, %T')
+      StatusBar.new(fs.rbar.mpd, 15, Color::NORMAL) do
+        begin
+          require 'librmpd' unless defined? MPD
+          @mpd = MPD.new    unless defined? @mpd
+          @mpd.connect      unless @mpd.connected?
+          if @mpd.status['state'] == 'stop'
+            text = '[]: Stopped'
+          else
+            if @mpd.status['state'] == 'play'
+              text = '>>: '
+            elsif @mpd.status['state'] == 'pause'
+              text = '||: '
+            end
+            text = text + "#{@mpd.current_song.artist} - #{@mpd.current_song.title}"
+          end
+        rescue
+          text = 'MPD not running'
+        end
+        "#{text}"
+      end,
+
+      StatusBar.new(fs.rbar.clock, 60, Color::NORMAL) do
+        Time.now.strftime('%d.%m.%Y %H:%M')
       end,
 
       #StatusBar.new(fs.rbar.disk_space, 60) do

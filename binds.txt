@@ -24,7 +24,7 @@ Mod4 + m + l                Send client right
 Mod4 + m + j                Send client down
 Mod4 + m + k                Send client up
 Mod4 + m + space            Toggle send
-Mod4 + m + c                Close all grouped clients
+Mod4 + m + delete           Close all grouped clients
 Mod4 + m + v                Changes the tag of each grouped client and returns chosen tag
 Mod4 + b                    Send grouped clients to a temporary view
 Mod4 + Shift + b            Send grouped clients back to their original view
