@@ -14,6 +14,7 @@ module Key
 
   PREFIX      = MOD + '-'
   FOCUS       = PREFIX
+  #SEND        = PREFIX + 'm,'
   SEND        = PREFIX + 'm,'
   SWAP        = PREFIX + 'w,'
   ARRANGE     = PREFIX + 'z,'
@@ -33,12 +34,12 @@ end
 
 module Color
   { # Color tuples are "<text> <background> <border>"
-    :NORMCOLORS   => NORMAL     = '#ffffff #222222 #333333',
-    :FOCUSCOLORS  => FOCUSED    = '#ffffff #285577 #4C7899',
-    :BACKGROUND   => BACKGROUND = '#333333',
-    #:NORMCOLORS   => NORMAL     = '#dcdccc #262626 #4c4c4c',
-    #:FOCUSCOLORS  => FOCUSED    = '#3099dd #000000 #3099dd',
-    #:BACKGROUND   => BACKGROUND = '#262626',
+    #:NORMCOLORS   => NORMAL     = '#ffffff #222222 #333333',
+    #:FOCUSCOLORS  => FOCUSED    = '#ffffff #285577 #4C7899',
+    #:BACKGROUND   => BACKGROUND = '#333333',
+    :NORMCOLORS   => NORMAL     = '#dcdccc #262626 #333333',
+    :FOCUSCOLORS  => FOCUSED    = '#3099dd #000000 #3099dd',
+    :BACKGROUND   => BACKGROUND = '#262626',
   }.each_pair do |k, v|
     ENV["WMII_#{k}"] = v
   end
@@ -66,10 +67,9 @@ fs.colrules.write <<EOF
 EOF
 
 # Tagging Rules
+#/Minefield.*/ -> web
+#/Navigator.*/ -> web
 fs.tagrules.write <<EOF
-/Firefox.*/ -> web
-/Vimperator.*/ -> web
-/Gran Paradiso.*/ -> web
 /Gimp.*/ -> gimp
 /MPlayer.*/ -> ~
 /.*/ -> !
@@ -144,13 +144,14 @@ EOF
   event :CreateClient do |id|
     c = Client.new(id)
 
-    case c.props.read
-    when /Firefox - Restore Previous Session/
-      c.tags = 'web'
-    when /:(Firefox|Gran Paradiso|jEdit|Epiphany)/i
-      c.tags = curr_tag
-      c.focus
-    end
+    #case c.props.read
+    #when /Firefox - Restore Previous Session/
+    #  c.tags = 'web'
+    #when /:(Firefox|Gran Paradiso|Vimperator|Opera|Minefield|Navigator)/i
+    #  c.tags = curr_tag
+    #  #c.tags = 'web'
+    #  c.focus
+    #end
   end
 
 # actions
@@ -187,7 +188,7 @@ EOF
     end
   end
 
-  class StatusBar < Thread
+  class Widget < Thread
     def initialize aBarNode, aRefreshRate, aBarColor = Color::NORMAL, &aBarText
       raise ArgumentError unless block_given?
 
@@ -203,51 +204,48 @@ EOF
   end
 
   action :status do
-    if defined? @statusBars
-      @statusBars.each { |s| s.kill }
+    if defined? @widgets
+      @widgets.each { |s| s.kill }
     end
 
-    @statusBars = [
-      StatusBar.new(fs.rbar.temp, 30, Color::NORMAL) do
-        temperature = `sensors`.scan(/:\s+\+(\d+)/).flatten.first
-        "#{temperature}C"
+    @widgets = [
+      Widget.new(fs.rbar.temp, 30, Color::NORMAL) do
+        `sensors`.scan(/:\s+\+(\d+)/).flatten.first.to_s + 'C'
       end,
 
-      StatusBar.new(fs.rbar.load, 20, Color::NORMAL) do
+      Widget.new(fs.rbar.load, 20, Color::NORMAL) do
         File.read('/proc/loadavg').split[0..2].join(' ')
       end,
 
-      StatusBar.new(fs.rbar.bat, 30, Color::NORMAL) do
-        lvl = `hal-get-property --udi /org/freedesktop/Hal/devices/computer_power_supply_battery_BAT1 --key battery.charge_level.percentage`.strip
-        "#{lvl}%"
+      Widget.new(fs.rbar.bat, 30, Color::NORMAL) do
+        `hal-get-property --udi /org/freedesktop/Hal/devices/computer_power_supply_battery_BAT1 --key battery.charge_level.percentage`.strip.to_s + '%'
       end,
 
-      StatusBar.new(fs.rbar.mpd, 15, Color::NORMAL) do
+      Widget.new(fs.rbar.mpd, 15, Color::NORMAL) do
         begin
           require 'librmpd' unless defined? MPD
           @mpd = MPD.new    unless defined? @mpd
           @mpd.connect      unless @mpd.connected?
           if @mpd.status['state'] == 'stop'
-            text = '[]: Stopped'
+            '[]: Stopped'
           else
             if @mpd.status['state'] == 'play'
-              text = '>>: '
+              pref = '>>: '
             elsif @mpd.status['state'] == 'pause'
-              text = '||: '
+              pref = '||: '
             end
-            text = text + "#{@mpd.current_song.artist} - #{@mpd.current_song.title}"
+            pref + "#{@mpd.current_song['artist']} - #{@mpd.current_song['title']}"
           end
         rescue
-          text = 'MPD not running'
+          'N/A'
         end
-        "#{text}"
       end,
 
-      StatusBar.new(fs.rbar.clock, 60, Color::NORMAL) do
+      Widget.new(fs.rbar.clock, 60, '#3099dd #262626 #333333') do
         Time.now.strftime('%d.%m.%Y %H:%M')
       end,
 
-      #StatusBar.new(fs.rbar.disk_space, 60) do
+      #Widget.new(fs.rbar.disk_space, 60) do
       #  rem, use, dir = `df -h ~`.split[-3..-1]
       #  "#{dir} #{use} used #{rem} free"
       #end,
