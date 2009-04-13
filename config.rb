@@ -14,7 +14,6 @@ module Key
 
   PREFIX      = MOD + '-'
   FOCUS       = PREFIX
-  #SEND        = PREFIX + 'm,'
   SEND        = PREFIX + 'm,'
   SWAP        = PREFIX + 'w,'
   ARRANGE     = PREFIX + 'z,'
@@ -37,8 +36,8 @@ module Color
     #:NORMCOLORS   => NORMAL     = '#ffffff #222222 #333333',
     #:FOCUSCOLORS  => FOCUSED    = '#ffffff #285577 #4C7899',
     #:BACKGROUND   => BACKGROUND = '#333333',
-    :NORMCOLORS   => NORMAL     = '#dcdccc #262626 #333333',
-    :FOCUSCOLORS  => FOCUSED    = '#3099dd #000000 #3099dd',
+    :NORMCOLORS   => NORMAL     = '#bbbbbb #222222 #333333',
+    :FOCUSCOLORS  => FOCUSED    = '#eeeeee #506070 #708090',
     :BACKGROUND   => BACKGROUND = '#262626',
   }.each_pair do |k, v|
     ENV["WMII_#{k}"] = v
@@ -63,7 +62,7 @@ EOF
 
 # Column Rules
 fs.colrules.write <<EOF
-/./ -> 55+45
+/./ -> 50+50
 EOF
 
 # Tagging Rules
@@ -205,23 +204,23 @@ EOF
 
   action :status do
     if defined? @widgets
-      @widgets.each { |s| s.kill }
+      @widgets.each { |widget| widget.kill }
     end
 
     @widgets = [
-      Widget.new(fs.rbar.temp, 30, Color::NORMAL) do
+      Widget.new(fs.rbar.temp, 30) do
         `sensors`.scan(/:\s+\+(\d+)/).flatten.first.to_s + 'C'
       end,
 
-      Widget.new(fs.rbar.load, 20, Color::NORMAL) do
+      Widget.new(fs.rbar.load, 20) do
         File.read('/proc/loadavg').split[0..2].join(' ')
       end,
 
-      Widget.new(fs.rbar.bat, 30, Color::NORMAL) do
+      Widget.new(fs.rbar.bat, 30) do
         `hal-get-property --udi /org/freedesktop/Hal/devices/computer_power_supply_battery_BAT1 --key battery.charge_level.percentage`.strip.to_s + '%'
       end,
 
-      Widget.new(fs.rbar.mpd, 15, Color::NORMAL) do
+      Widget.new(fs.rbar.mpd, 15) do
         begin
           require 'librmpd' unless defined? MPD
           @mpd = MPD.new    unless defined? @mpd
@@ -241,7 +240,7 @@ EOF
         end
       end,
 
-      Widget.new(fs.rbar.clock, 60, '#3099dd #262626 #333333') do
+      Widget.new(fs.rbar.clock, 60, '#ffffff #000000 #000000') do
         Time.now.strftime('%d.%m.%Y %H:%M')
       end,
 
