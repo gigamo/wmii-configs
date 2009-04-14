@@ -95,12 +95,12 @@ EOF
     btn.write "#{Color::NORMAL} #{tag}" if btn.exist?
   end
 
-  event :UrgentTag do |tag|
+  event :UrgentTag do |what, tag|
     btn = fs.lbar[tag]
     btn.write "*#{tag}" if btn.exist?
   end
 
-  event :NotUrgentTag do |tag|
+  event :NotUrgentTag do |what, tag|
     btn = fs.lbar[tag]
     btn.write tag if btn.exist?
   end
@@ -171,10 +171,7 @@ EOF
   action :clear do
     # firefox's restore session feature doesn't
     # work unless the whole process is killed.
-    system 'killall firefox firefox-bin thunderbird thunderbird-bin deluge'
-
-    # gnome-panel refuses to die by other means
-    system 'killall -s TERM gnome-panel'
+    system 'killall firefox firefox-bin'
 
     until (clients = Rumai.clients).empty?
       clients.each do |c|
@@ -202,25 +199,53 @@ EOF
     end
   end
 
+  module LocalUtil
+    class ProcFile
+      include Enumerable
+      
+      def self.parse_file(file)
+        file = File.expand_path(file, "/proc")
+        new(File.new(file))
+      end
+      
+      def initialize(string_or_io)
+        case string_or_io
+        when String
+          content = string_or_io
+        when IO
+          content = string_or_io.read
+          string_or_io.close
+        end
+        @list = [{}]
+        content.each_line do |line|
+          if sep = line.index(":")
+            @list[-1][line[0..sep-1].strip] = line[sep+1..-1].strip
+          else
+            @list << {}
+          end
+        end
+        @list.pop if @list[-1].empty?
+      end
+      
+      def each
+        @list.each do |section|
+          yield section
+        end
+      end
+      
+      def [](section)
+        @list[section]
+      end
+    end
+  end
+
   action :status do
     if defined? @widgets
       @widgets.each { |widget| widget.kill }
     end
 
     @widgets = [
-      Widget.new(fs.rbar.temp, 30) do
-        `sensors`.scan(/:\s+\+(\d+)/).flatten.first.to_s + 'C'
-      end,
-
-      Widget.new(fs.rbar.load, 20) do
-        File.read('/proc/loadavg').split[0..2].join(' ')
-      end,
-
-      Widget.new(fs.rbar.bat, 30) do
-        `hal-get-property --udi /org/freedesktop/Hal/devices/computer_power_supply_battery_BAT1 --key battery.charge_level.percentage`.strip.to_s + '%'
-      end,
-
-      Widget.new(fs.rbar.mpd, 15) do
+      Widget.new(fs.rbar.a_mpd, 15) do
         begin
           require 'librmpd' unless defined? MPD
           @mpd = MPD.new    unless defined? @mpd
@@ -240,7 +265,24 @@ EOF
         end
       end,
 
-      Widget.new(fs.rbar.clock, 60, '#ffffff #000000 #000000') do
+      Widget.new(fs.rbar.b_temp, 30) do
+        `sensors`.scan(/:\s+\+(\d+)/).flatten.first + 'C'
+      end,
+
+      Widget.new(fs.rbar.c_load, 20) do
+        File.read('/proc/loadavg').split[0..2].join(' ')
+      end,
+
+      Widget.new(fs.rbar.d_mem, 30) do
+        meminfo = LocalUtil::ProcFile.parse_file('meminfo')[0]
+        ((meminfo['MemTotal'].to_i - (meminfo['MemFree'].to_i + meminfo['Buffers'].to_i + meminfo['Cached'].to_i)) / 1024).to_s + 'Mb'
+      end,
+
+      Widget.new(fs.rbar.f_bat, 30) do
+        `hal-get-property --udi /org/freedesktop/Hal/devices/computer_power_supply_battery_BAT1 --key battery.charge_level.percentage`.strip + '%'
+      end,
+
+      Widget.new(fs.rbar.z_clock, 60) do
         Time.now.strftime('%d.%m.%Y %H:%M')
       end,
 
@@ -629,16 +671,6 @@ EOF
       # apply grid layout with {i} clients per column
       key Key::ARRANGE + i.to_s do
         curr_view.arrange_in_grid i
-      end
-    end
-
-  # alphabet keys
-    # focus the view whose name begins with an alphabet key
-    ('a'..'z').each do |k|
-      key Key::VIEW + k do
-        if t = tags.grep(/^#{k}/i).first
-          focus_view t
-        end
       end
     end
 
