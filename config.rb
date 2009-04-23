@@ -675,8 +675,10 @@ EOF
     end
 
 # wallpaper
+  walls = Dir[File.join(ENV['HOME'], 'walls', 'women', '*.{jpg,png}')]
   system "xsetroot -solid #{Color::BACKGROUND.inspect} &"
-  system 'sh ~/.fehbg &' # set desktop wallpaper
+  system "feh --bg-scale #{File.expand_path(walls[rand(walls.length)])} &"
+  #system 'sh ~/.fehbg &'
 
 # bootstrap
   action :status
