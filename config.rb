@@ -58,6 +58,7 @@ border 2
 font #{WMII_FONT}
 focuscolors #{Color::FOCUSED}
 normcolors #{Color::NORMAL}
+bar on top
 EOF
 
 # Column Rules
