@@ -248,17 +248,13 @@ EOF
     @widgets = [
       Widget.new(fs.rbar.a_mpd, 15) do
         begin
-          require 'librmpd' unless defined? MPD
+          require 'librmpd'
           @mpd = MPD.new    unless defined? @mpd
           @mpd.connect      unless @mpd.connected?
-          if @mpd.status['state'] == 'stop'
+          if (state ||= @mpd.status['state']) == 'stop'
             '[]: Stopped'
           else
-            if @mpd.status['state'] == 'play'
-              pref = '>>: '
-            elsif @mpd.status['state'] == 'pause'
-              pref = '||: '
-            end
+            state == 'play' ? (pref = '>>: ') : (pref = '||: ')
             pref + "#{@mpd.current_song['artist']} - #{@mpd.current_song['title']}"
           end
         rescue
@@ -267,7 +263,7 @@ EOF
       end,
 
       Widget.new(fs.rbar.b_temp, 30) do
-        `sensors`.scan(/:\s+\+(\d+)/).flatten.first + 'C'
+        (temps ||= `sensors`.scan(/:\s+\+(\d+)/).flatten).first + 'C : ' + temps.last + 'C'
       end,
 
       Widget.new(fs.rbar.c_load, 20) do
