@@ -1,0 +1,425 @@
+#
+# High-level wmii configuration.
+#
+# Ruby code in this file has access
+# to a CONFIG constant which contains
+# the data in this configuration file.
+#
+#--
+# Copyright protects this work.
+# See LICENSE file for details.
+#++
+
+
+##
+# Program preferences.
+#
+program:
+  terminal: urxvtc
+  browser: firefox
+  editor: gvim
+  filer: thunar
+
+
+##
+# Appearance settings.
+#
+display:
+
+  ##
+  # Where to display the horizontal status bar?
+  #
+  # Possible choices are "top" and "bottom".
+  #
+  bar: bottom
+
+  ##
+  # The font to use in all text drawn by wmii.
+  #
+  #font: -*-cure-*-*-*-*-*-*-*-*-*-*-*-*
+  font: -*-terminus-*-*-12-*-*-*-*-*-*-*
+
+  ##
+  # Thickness of client border (measured in pixels).
+  #
+  border: 1
+
+  ##
+  # Number of seconds a notice should be displayed.
+  #
+  notice: 5
+
+  ##
+  # Color schemes for everything drawn by wmii.
+  #
+  #   <scheme>: "<text> <background> <border>"
+  #
+  # You can find more color schemes here:
+  #
+  #   http://wmii.suckless.org/scripts_n_snips/themes
+  #
+  color:
+    normal:  '#888888 #181818 #272727'
+    focus:   '#ffffff #000000 #0d78b6'
+    error:   '#b0393f #000000 #b0393f'
+    notice:  '#9c8e2d #000000 #9c8e2d'
+    success: '#51588e #000000 #51588e'
+
+  ##
+  # Color of desktop background.
+  #
+  background: '#181818'
+
+  ##
+  # Settings for columns drawn by wmii.
+  #
+  #   mode: <the wmii "colmode" setting>
+  #   rule: <the wmii "colrules" setting>
+  #
+  column:
+    mode: default
+    rule: |
+      /gimp/ -> 17+83+41
+      /.*/ -> 62+38 # Golden Ratio
+
+  ##
+  # Mapping of clients to views they must appear on.
+  #
+  #   - <client props regular expression> : <tags to apply>
+  #
+  # These mappings are processed in top-to-bottom order.
+  # Processing stops after the first matching mapping is applied.
+  #
+  client:
+    - /MPlayer|VLC/ : ~
+
+  ##
+  # Self-refreshing buttons on the status bar.
+  #
+  #   - <button name>:
+  #       refresh:  <number of seconds to wait before refreshing the content>
+  #       content:  <Ruby code whose result is displayed as the content>
+  #       click:    <Ruby code to handle mouse clicks on the status button.
+  #                  This code has access to a "mouse_button" variable which is
+  #                  an integer representing the mouse button that was clicked.>
+  #
+  # You can refresh a particular status button in Ruby using:
+  #
+  #   status "your button name"
+  #
+  # The horizontal order in which these buttons appear on the status
+  # bar reflects the vertical order in which they are defined below.
+  #
+  status:
+    - temperature:
+        refresh: 30
+        content: |
+          (temps ||= `sensors`.scan(/:\s+\+(\d+)/).flatten).first + 'C : ' + temps.last + 'C'
+        click: |
+          status 'temperature' if mouse_button == 1
+
+    - system_load:
+        refresh: 10
+        content: |
+          load_averages = File.read('/proc/loadavg').split.first(3)
+          current_load  = load_averages.first.to_f
+
+          # visually indicate the intensity of system load
+          color = case
+            when current_load > 3.0 then CONFIG['display']['color']['error']
+            when current_load > 1.5 then CONFIG['display']['color']['notice']
+          end
+
+          [color, *load_averages]
+
+    - battery:
+        refresh: 30
+        content: |
+          `hal-get-property --udi /org/freedesktop/Hal/devices/computer_power_supply_battery_BAT1 --key battery.charge_level.percentage`.strip + '%'
+
+    - clock:
+        refresh: 60
+        content: |
+          Time.now.strftime('%d.%m.%Y %H:%M') 
+
+
+##
+# Interaction settings.
+#
+control:
+
+  ##
+  # The wmii "grabmod" setting.
+  #
+  grab: Mod4
+
+  ##
+  # Prefix for all shortcuts.
+  #
+  mod: Mod4
+
+  ##
+  # Direction keys.
+  #
+  up:    k
+  down:  j
+  left:  h
+  right: l
+
+  ##
+  # Key bindings.
+  #
+  #   <key sequence>: <Ruby code to execute>
+  #
+  # A key sequence may contain ${...} expressions which
+  # are replaced with the value corresponding to '...'
+  # in the 'control' section of this configuration file.
+  #
+  # For example, if the 'control' section of
+  # this configuration file appeared like this:
+  #
+  #   control:
+  #     foo: Mod4
+  #     bar: y
+  #
+  # and the following key sequence was used:
+  #
+  #   ${foo}-${bar},${bar}
+  #
+  # then after ${...} expression replacement,
+  # that key sequence would appear like this:
+  #
+  #   Mod4-y,y
+  #
+  key:
+    #---------------------------------------------------------------------------
+    # focus
+    #---------------------------------------------------------------------------
+
+    ${mod}-${up}: | # focus above client
+      curr_view.select(:up) rescue nil
+
+    ${mod}-${down}: | # focus below client
+      curr_view.select(:down) rescue nil
+
+    ${mod}-${left}: | # focus left client
+      curr_view.select(:left) rescue nil
+
+    ${mod}-${right}: | # focus right client
+      curr_view.select(:right) rescue nil
+
+    ${mod}-space: | # focus floating area (toggle)
+      curr_view.select(:toggle)
+
+    # focus the view whose index or name equals the pressed number
+    ${mod}-1: focus_view tags[0] || 1
+    ${mod}-2: focus_view tags[1] || 2
+    ${mod}-3: focus_view tags[2] || 3
+    ${mod}-4: focus_view tags[3] || 4
+    ${mod}-5: focus_view tags[4] || 5
+    ${mod}-6: focus_view tags[5] || 6
+    ${mod}-7: focus_view tags[6] || 7
+    ${mod}-8: focus_view tags[7] || 8
+    ${mod}-9: focus_view tags[8] || 9
+    ${mod}-0: focus_view tags[9] || 10
+
+    #---------------------------------------------------------------------------
+    # move
+    #---------------------------------------------------------------------------
+
+    ${mod}-Shift-${up}: | # move grouping toward the top
+      grouping.each {|c| c.send(:up) rescue nil }
+
+    ${mod}-Shift-${down}: | # move grouping toward the bottom
+      grouping.each {|c| c.send(:down) rescue nil }
+
+    ${mod}-Shift-${left}: | # move grouping toward the left
+      grouping.each {|c| c.send(:left) rescue nil }
+
+    ${mod}-Shift-${right}: | # move grouping toward the right
+      grouping.each {|c| c.send(:right) rescue nil }
+
+    ${mod}-Shift-space: | # move grouping to floating area (toggle)
+      grouping.each {|c| c.send(:toggle) rescue nil }
+
+    # move grouping to the view whose index or name equals the pressed number
+    ${mod}-Shift-1: grouping.each {|c| c.tags = tags[0] || 1  }
+    ${mod}-Shift-2: grouping.each {|c| c.tags = tags[1] || 2  }
+    ${mod}-Shift-3: grouping.each {|c| c.tags = tags[2] || 3  }
+    ${mod}-Shift-4: grouping.each {|c| c.tags = tags[3] || 4  }
+    ${mod}-Shift-5: grouping.each {|c| c.tags = tags[4] || 5  }
+    ${mod}-Shift-6: grouping.each {|c| c.tags = tags[5] || 6  }
+    ${mod}-Shift-7: grouping.each {|c| c.tags = tags[6] || 7  }
+    ${mod}-Shift-8: grouping.each {|c| c.tags = tags[7] || 8  }
+    ${mod}-Shift-9: grouping.each {|c| c.tags = tags[8] || 9  }
+    ${mod}-Shift-0: grouping.each {|c| c.tags = tags[9] || 10 }
+
+    #---------------------------------------------------------------------------
+    # client
+    #---------------------------------------------------------------------------
+
+    ${mod}-f: | # zoom client to fullscreen (toggle)
+      curr_client.fullscreen!
+
+    ${mod}-c: | # kill the current client
+      curr_client.kill
+
+    #---------------------------------------------------------------------------
+    # column
+    #---------------------------------------------------------------------------
+
+    ${mod}-d: | # apply equal-spacing layout to current column
+      curr_area.layout = 'default-max'
+
+    ${mod}-v: | # apply stacked layout to current column
+      curr_area.layout = 'stack-max'
+
+    ${mod}-m: | # apply maximized layout to current column
+      curr_area.layout = 'stack+max'
+
+    #---------------------------------------------------------------------------
+    # menu
+    #---------------------------------------------------------------------------
+
+    ${mod}-a: | # run internal action chosen from a menu
+      if choice = key_menu(actions, 'run action:')
+        action choice
+      end
+
+    ${mod}-r: | # run external program chosen from a menu
+      if choice = key_menu(@programs, 'run program:')
+        launch choice
+      end
+
+    ${mod}-t: | # focus view chosen from a menu
+      if choice = key_menu(tags, 'show view:')
+        focus_view choice
+      end
+
+    #---------------------------------------------------------------------------
+    # launcher
+    #---------------------------------------------------------------------------
+
+    ${mod}-x: | # launch a terminal
+      #
+      # Launch a new terminal and set its
+      # working directory to be the same
+      # as the currently focused terminal.
+      #
+      work = ENV['HOME']
+
+      label = curr_client.label.read rescue ""
+
+      # iterate in reverse order because
+      # paths are usually at end of label
+      label.split(' ').reverse_each do |s|
+        path = File.expand_path(s)
+
+        if File.exist? path
+          unless File.directory? path
+            path = File.dirname(path)
+          end
+
+          work = path
+          break
+        end
+      end
+
+      require 'fileutils'
+      FileUtils.cd work do
+        launch CONFIG['program']['terminal']
+      end
+
+  ##
+  # Event handlers.
+  #
+  #   <event name>: <Ruby code to execute>
+  #
+  # The Ruby code has access to an "argv" variable which
+  # is a list of arguments that were passed to the event.
+  #
+  event:
+    CreateTag: |
+      tag = argv[0]
+      but = fs.lbar[tag]
+      but.create unless but.exist?
+      but.write "#{CONFIG['display']['color']['normal']} #{tag}"
+
+    DestroyTag: |
+      tag = argv[0]
+      but = fs.lbar[tag]
+      but.remove if but.exist?
+
+    FocusTag: |
+      tag = argv[0]
+      but = fs.lbar[tag]
+      but.write "#{CONFIG['display']['color']['focus']} #{tag}" if but.exist?
+
+    UnfocusTag: |
+      tag = argv[0]
+      but = fs.lbar[tag]
+      but.write "#{CONFIG['display']['color']['normal']} #{tag}" if but.exist?
+
+    UrgentTag: |
+      tag = argv[1]
+      but = fs.lbar[tag]
+      but.write "#{CONFIG['display']['color']['notice']} #{tag}" if but.exist?
+
+    NotUrgentTag: |
+      tag = argv[1]
+      but = fs.lbar[tag]
+      color = curr_view.id == tag ? 'focus' : 'normal'
+      but.write "#{CONFIG['display']['color'][color]} #{tag}" if but.exist?
+
+    LeftBarClick: &LeftBarClick |
+      mouse_button, view_id = argv
+
+      if mouse_button == '1' # primary button
+        focus_view view_id
+      end
+
+    ##
+    # allows the user to drag a file over a
+    # view button and activate that view while
+    # still holding on to their dragged file!
+    #
+    LeftBarDND: *LeftBarClick
+
+    RightBarClick: |
+      status_click *argv.reverse
+
+    ClientMouseDown: |
+      client_id, mouse_button = argv
+
+      if mouse_button == '3' # secondary button
+        client = Client.new(client_id)
+
+        case click_menu %w[stick group fullscreen kill slay], 'client'
+        when 'stick'      then client.stick!
+        when 'group'      then client.group!
+        when 'fullscreen' then client.fullscreen!
+        when 'kill'       then client.kill
+        when 'slay'       then client.slay
+        end
+      end
+
+  ##
+  # Internal scripts.
+  #
+  #   <action name>: <Ruby code to execute>
+  #
+  action:
+
+
+##
+# Arbitrary logic.
+#
+#   script:
+#     before: <Ruby code to execute before processing this file>
+#     after:  <Ruby code to execute after processing this file>
+#
+script:
+  before:
+  after: |
+    # wallpaper
+    system "feh --bg-scale ~/walls/rain1440_900.jpg &"
