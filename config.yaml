@@ -114,7 +114,14 @@ display:
     - temperature:
         refresh: 30
         content: |
-          (temps ||= `sensors`.scan(/:\s+\+(\d+)/).flatten).first + 'C : ' + temps.last + 'C'
+          temperature = (((temps ||= `sensors`.scan(/:\s+\+(\d+)/).flatten).first.to_f + temps.last.to_f) / 2).to_s + '°C'
+
+          color = case
+            when temperature > 90 then CONFIG['display']['color']['error']
+            when temperature > 75 then CONFIG['display']['color']['notice']
+          end
+
+          [color, temperature]
         click: |
           status 'temperature' if mouse_button == 1
 
@@ -124,7 +131,6 @@ display:
           load_averages = File.read('/proc/loadavg').split.first(3)
           current_load  = load_averages.first.to_f
 
-          # visually indicate the intensity of system load
           color = case
             when current_load > 3.0 then CONFIG['display']['color']['error']
             when current_load > 1.5 then CONFIG['display']['color']['notice']
