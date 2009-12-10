@@ -12,18 +12,16 @@
 # Program preferences.
 program:
   terminal: urxvtc
-  browser: firefox
-  editor: gvim
-  filer: thunar
-
 
 # Appearance settings.
 display:
   # Possible choices are "top" and "bottom".
   bar: bottom
 
-  font: -*-cure-*-*-*-*-*-*-*-*-*-*-*-*
+  #font: -*-cure-*-*-*-*-*-*-*-*-*-*-*-*
   #font: -*-terminus-*-*-12-*-*-*-*-*-*-*
+  #font: -adobe-helvetica-medium-r-normal-*-10-*-*-*-*-*-*-*
+  font: 'xft:Monaco-7.5'
 
   border: 1
 
@@ -33,11 +31,11 @@ display:
   # Color schemes for everything drawn by wmii.
   #   <scheme>: "<text> <background> <border>"
   color:
-    normal:  '#4d4d4d #222222 #4d4d4d'
-    focus:   '#ffaa44 #222222 #4d4d4d'
+    normal:  '#888888 #1d1d1d #4d4d4d'
+    focus:   '#add500 #212121 #4d4d4d'
     error:   '#d8186a #222222 #4d4d4d'
     notice:  '#387cd1 #222222 #4d4d4d'
-    success: '#add500 #222222 #4d4d4d'
+    success: '#ffaa44 #222222 #4d4d4d'
 
   # Color of desktop background.
   background: '#222222'

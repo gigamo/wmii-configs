@@ -26,44 +26,44 @@ $stdout = $stderr = LOG
 begin
   LOG.info 'birth'
 
-  # load configuration library
-    def find_config file
-      base_dirs = ENV['WMII_CONFPATH'].to_s.split(/:+/)
-      ruby_dirs = base_dirs.map {|dir| File.join(dir, 'ruby') }
+# load configuration library
+  def find_config file
+    base_dirs = ENV['WMII_CONFPATH'].to_s.split(/:+/)
+    ruby_dirs = base_dirs.map {|dir| File.join(dir, 'ruby') }
 
-      Dir["{#{base_dirs.zip(ruby_dirs).join(',')}}/#{file}"].first
+    Dir["{#{base_dirs.zip(ruby_dirs).join(',')}}/#{file}"].first
+  end
+
+  require find_config('config.rb')
+
+# terminate any existing wmiirc
+  fs.event.write 'Start wmiirc'
+
+  event 'Start' do |arg|
+    exit if arg == 'wmiirc'
+  end
+
+# apply user configuration
+  load_config find_config('config.yaml')
+
+# setup tag bar (buttons that correspond to views)
+  fs.lbar.clear
+  tags.each {|t| event 'CreateTag', t }
+  event 'FocusTag', curr_tag
+
+# register key bindings
+  fs.keys.write keys.join("\n")
+  event('Key') {|*a| key(*a) }
+
+# the main event loop
+  fs.event.each_line do |line|
+    line.split("\n").each do |call|
+      name, args = call.split(' ', 2)
+
+      argv = args.to_s.split(' ')
+      event name, *argv
     end
-
-    require find_config('config.rb')
-
-  # terminate any existing wmiirc
-    fs.event.write 'Start wmiirc'
-
-    event 'Start' do |arg|
-      exit if arg == 'wmiirc'
-    end
-
-  # apply user configuration
-    load_config find_config('config.yaml')
-
-  # setup tag bar (buttons that correspond to views)
-    fs.lbar.clear
-    tags.each {|t| event 'CreateTag', t }
-    event 'FocusTag', curr_tag
-
-  # register key bindings
-    fs.keys.write keys.join("\n")
-    event('Key') {|*a| key(*a) }
-
-  # the main event loop
-    fs.event.each_line do |line|
-      line.split("\n").each do |call|
-        name, args = call.split(' ', 2)
-
-        argv = args.to_s.split(' ')
-        event name, *argv
-      end
-    end
+  end
 
 rescue SystemExit
   # ignore it; the program wants to terminate
