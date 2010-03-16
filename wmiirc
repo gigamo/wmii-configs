@@ -13,7 +13,7 @@ LOG = Logger.new(__FILE__ + '.log', 5)
 
 class << LOG
   # emulate IO.write
-  alias write <<
+  alias_method  :write , :<<
 
   def flush
     # ignore

@@ -5,12 +5,13 @@ program:
 # Appearance settings.
 display:
   # Possible choices are "top" and "bottom".
-  bar: top
+  bar: bottom
 
-  #font: -*-cure-*-*-*-*-*-*-*-*-*-*-*-*
-  #font: -*-terminus-*-*-12-*-*-*-*-*-*-*
-  font: -*-profont-*-*-11-*-*-*-*-*-*-*
-  #font: -adobe-helvetica-medium-r-normal-*-10-*-*-*-*-*-*-*
+  #font: -misc-fixed-medium-r-normal-*-10-*-*-*-*-*-*-*
+  #font: -*-nu-*-*-*-*-*-*-*-*-*-*-*-*
+  ##font: -*-terminus-*-*-12-*-*-*-*-*-*-*
+  #font: -*-profont-*-*-11-*-*-*-*-*-*-*
+  font: -adobe-helvetica-medium-r-normal-*-10-*-*-*-*-*-*-*
   #font: 'xft:Monaco-7.5'
 
   border: 1
@@ -21,11 +22,11 @@ display:
   # Color schemes for everything drawn by wmii.
   #   <scheme>: "<text> <background> <border>"
   color:
-    normal:  '#757575 #202020 #202020'
-    focus:   '#cdff00 #202020 #303030'
-    error:   '#ff3b77 #202020 #ff3b77'
-    notice:  '#ff3b77 #202020 #cdff00'
-    success: '#cdff00 #202020 #cdff00'
+    normal:  '#757575 #000000 #131313'
+    focus:   '#cdff00 #000000 #232323'
+    error:   '#ff3b77 #000000 #ff3b77'
+    notice:  '#ff3b77 #000000 #cdff00'
+    success: '#cdff00 #000000 #cdff00'
 
   # Color of desktop background.
   background: '#3d3d3d'
@@ -69,6 +70,29 @@ display:
         refresh: 10
         content: |
           File.read('/proc/loadavg').slice(0, 14)
+
+    - cpu:
+        refresh: 30
+        content: |
+          data = ""
+          time = Time.now.to_i
+
+          File.read('/proc/stat').scan(/cpu(\d+) (\d+) (\d+) (\d+)/) do |num, user, nice, system|
+            n = num.to_i
+
+            @cpu_delta[n] = time - @cpu_last[n]
+            @cpu_delta[n] = 1 if 0 == @cpu_delta[n]
+            @cpu_last[n]  = time
+
+            sum = user.to_i + nice.to_i + system.to_i
+            use = ((sum - @cpu_sum[n]) / @cpu_delta[n] / 100.0)
+            @cpu_sum[n] = sum
+            percent     = (use * 100.0).ceil % 100
+
+            data << percent.to_s + '% '
+          end
+
+          data.chop
 
     - battery:
         refresh: 30
@@ -312,6 +336,14 @@ script:
   before: |
     @battery_path = Dir['/sys/class/power_supply/B*'].first
     @battery_full = File.read(@battery_path + '/charge_full').to_i
+
+    @cpu_last, @cpu_delta, @cpu_sum = [], [], []
+    File.read('/proc/stat').scan(/cpu(\d+)/) do |num|
+      n = num.first.to_i
+      @cpu_last[n]  = 0
+      @cpu_delta[n] = 0
+      @cpu_sum[n]   = 0
+    end
 
   after: |
     system 'nitrogen --restore &'
