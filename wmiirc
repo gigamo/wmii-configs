@@ -13,7 +13,7 @@ LOG = Logger.new(__FILE__ + '.log', 5)
 
 class << LOG
   # emulate IO.write
-  alias_method  :write , :<<
+  alias_method :write , :<<
 
   def flush
     # ignore
@@ -82,10 +82,7 @@ rescue Exception => e
   IO.popen('xmessage -nearmouse -file - -buttons Recover,Ignore -print', 'w+') do |f|
     f.puts e.inspect, e.backtrace
     f.close_write
-
-    if f.read.chomp == 'Recover'
-      reload_config
-    end
+    reload_config if f.read.chomp == 'Recover'
   end
 
 ensure
