@@ -67,41 +67,17 @@ display:
   # bar reflects the vertical order in which they are defined below.
   status:
     - system_load:
-        refresh: 10
+        refresh: 11
         content: |
           File.read('/proc/loadavg').slice(0, 14)
 
-    - cpu:
-        refresh: 30
-        content: |
-          data = ""
-          time = Time.now.to_i
-
-          File.read('/proc/stat').scan(/cpu(\d+) (\d+) (\d+) (\d+)/) do |num, user, nice, system|
-            n = num.to_i
-
-            @cpu_delta[n] = time - @cpu_last[n]
-            @cpu_delta[n] = 1 if 0 == @cpu_delta[n]
-            @cpu_last[n]  = time
-
-            sum = user.to_i + nice.to_i + system.to_i
-            use = ((sum - @cpu_sum[n]) / @cpu_delta[n] / 100.0)
-            @cpu_sum[n] = sum
-            percent     = (use * 100.0).ceil % 100
-
-            data << percent.to_s + '% '
-          end
-
-          data.chop
-
     - battery:
-        refresh: 30
+        refresh: 29
         content: |
-          now = File.read(@battery_path + '/charge_now').to_i
-          (now * 100 / @battery_full).to_s << '%'
+          [File.read(battery_path + '/charge_now').to_i * 100 / battery_full, '%'].join
 
     - clock:
-        refresh: 60
+        refresh: 59
         content: |
           Time.now.strftime('%B %e %H:%M') 
 
@@ -334,15 +310,12 @@ control:
 #     after:  <Ruby code to execute after processing this file>
 script:
   before: |
-    @battery_path = Dir['/sys/class/power_supply/B*'].first
-    @battery_full = File.read(@battery_path + '/charge_full').to_i
+    def battery_path
+      @_path ||= Dir['/sys/class/power_supply/B*'].first
+    end
 
-    @cpu_last, @cpu_delta, @cpu_sum = [], [], []
-    File.read('/proc/stat').scan(/cpu(\d+)/) do |num|
-      n = num.first.to_i
-      @cpu_last[n]  = 0
-      @cpu_delta[n] = 0
-      @cpu_sum[n]   = 0
+    def battery_full
+      @_full ||= File.read(battery_path + '/charge_full').to_i
     end
 
   after: |
